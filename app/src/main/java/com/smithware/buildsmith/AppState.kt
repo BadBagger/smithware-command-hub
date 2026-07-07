@@ -90,7 +90,7 @@ class BuildSmithViewModel(application: Application) : AndroidViewModel(applicati
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BuildSmithUiState())
 
     init {
-        viewModelScope.launch { seedDemoDataIfNeeded() }
+        viewModelScope.launch { seedStudioDataIfNeeded() }
     }
 
     private fun settingsFlow() =
@@ -156,8 +156,8 @@ class BuildSmithViewModel(application: Application) : AndroidViewModel(applicati
                 usageFrequency = frequency.ifBlank { "A few times per week" },
                 scope = scope,
                 monetization = monetization,
-                status = "Planning",
-                buildStage = "Blueprint created",
+                status = "Idea",
+                buildStage = "Next step: Generate full app build prompt",
                 lastEdited = today(),
                 mvpProgress = 28,
                 summary = "$name turns a rough idea into a focused $platform product plan for $useCase.",
@@ -184,6 +184,42 @@ class BuildSmithViewModel(application: Application) : AndroidViewModel(applicati
     fun quickAddFeature(projectId: Long, name: String, description: String) = viewModelScope.launch {
         if (name.isNotBlank()) {
             dao.upsertFeature(FeatureEntity(projectId = projectId, name = name, description = description, priority = "Must-have", complexity = "Medium", monetization = "Free", status = "Planned", category = "Core features", notes = "Added from planner."))
+        }
+    }
+
+    fun quickAddAsset(projectId: Long, name: String, notes: String) = viewModelScope.launch {
+        if (name.isNotBlank()) {
+            dao.upsertFeature(
+                FeatureEntity(
+                    projectId = projectId,
+                    name = name,
+                    description = notes.ifBlank { "Needed launch asset for this app." },
+                    priority = "Should-have",
+                    complexity = "Low",
+                    monetization = "Free",
+                    status = "Planned",
+                    category = "Asset tracker",
+                    notes = "Track icon, screenshots, store copy, privacy notes, and testing assets."
+                )
+            )
+        }
+    }
+
+    fun quickAddBug(projectId: Long, note: String) = viewModelScope.launch {
+        if (note.isNotBlank()) {
+            dao.upsertFeature(
+                FeatureEntity(
+                    projectId = projectId,
+                    name = note.take(48),
+                    description = note,
+                    priority = "Must-have",
+                    complexity = "Medium",
+                    monetization = "Free",
+                    status = "Planned",
+                    category = "Bug / update log",
+                    notes = "Generate a Codex bug-fix or update prompt from this note."
+                )
+            )
         }
     }
 
@@ -234,17 +270,61 @@ class BuildSmithViewModel(application: Application) : AndroidViewModel(applicati
     fun deletePrompt(id: Long) = viewModelScope.launch { dao.deletePrompt(id) }
     fun setChecklist(id: Long, checked: Boolean) = viewModelScope.launch { dao.setChecklistChecked(id, checked) }
 
-    private suspend fun seedDemoDataIfNeeded() {
-        if (dao.projectCount() > 0) return
-        listOf(
-            DemoSeed("MarkerMic", "Audio recorder with timestamp markers", "Creator tool", "Freemium"),
-            DemoSeed("PlatePilot", "Calorie, carb, and macro tracker", "Health/fitness app", "Subscription"),
-            DemoSeed("Renewal Radar", "Subscription and bill tracker", "Tracker/logging app", "Lifetime unlock")
-        ).forEach { seed ->
-            val id = dao.upsertProject(ProjectEntity(appName = seed.name, description = seed.description, category = "Productivity", platform = "Android", useCase = "Public release", targetUser = "Solo builders and practical users who want fast planning.", problem = "Important details get scattered across notes before the first build.", difference = "BuildSmith keeps screens, features, data, prompts, and launch tasks in one local project.", usageFrequency = "Weekly during planning, daily during build", scope = seed.scope, monetization = seed.monetization, status = "Planning", buildStage = "MVP blueprint", lastEdited = today(), mvpProgress = 45, summary = "${seed.name} is a focused ${seed.scope.lowercase()} for ${seed.description}.", mainFlow = "Open dashboard, add the main record, review recent activity, edit details, and export build prompts.", futureFeatures = "Widgets, exports, cloud backup, and automation hooks.", premiumFeatures = premiumSuggestions(seed.monetization), permissions = suggestedPermissions(seed.scope), technicalRequirements = "Kotlin, Jetpack Compose, Room, DataStore, offline-first local storage.", risks = "Keep the MVP narrow and avoid launch copy that overpromises.", buildOrder = "Data layer, navigation shell, MVP screens, prompt/export, polish, release checklist."))
-            addDefaultPlan(id, seed.name, seed.scope, seed.monetization)
-            dao.upsertPrompt(PromptEntity(projectId = id, title = "Full app build prompt - ${seed.name}", projectName = seed.name, type = "Full app build prompt", body = PromptFactory.generate(state.value.projects.firstOrNull { it.id == id } ?: ProjectEntity(appName = seed.name, description = seed.description, category = "", platform = "Android", useCase = "", targetUser = "", problem = "", difference = "", usageFrequency = "", scope = seed.scope, monetization = seed.monetization, status = "", buildStage = "", lastEdited = "", mvpProgress = 0, summary = seed.description, mainFlow = "", futureFeatures = "", premiumFeatures = "", permissions = "", technicalRequirements = "", risks = "", buildOrder = ""), emptyList(), emptyList(), emptyList(), BuildSmithSettings(), "Full app build prompt"), createdAt = today()))
+    private suspend fun seedStudioDataIfNeeded() {
+        if (dao.projectCount() == 0) {
+            seedCoreStudioProjects()
+            return
         }
+        listOf("Workday Planner", "Fridge Finish", "FolderSmith Mobile", "BuildSmith Studio").forEach { name ->
+            if (dao.projectCountByName(name) == 0) {
+                val seed = studioSeeds.first { it.name == name }
+                seedProject(seed)
+            }
+        }
+    }
+
+    private suspend fun seedCoreStudioProjects() {
+        studioSeeds.forEach { seedProject(it) }
+    }
+
+    private suspend fun seedProject(seed: DemoSeed) {
+        val id = dao.upsertProject(
+            ProjectEntity(
+                appName = seed.name,
+                description = seed.description,
+                category = seed.category,
+                platform = "Android",
+                useCase = "Smithware Studios workflow",
+                targetUser = "Smithware Studios, indie builders, and solo developers turning ideas into real app releases.",
+                problem = "Ideas, prompts, logos, bugs, store assets, and update requests get scattered across chats and folders.",
+                difference = "BuildSmith Studio keeps the idea-to-Codex-to-launch loop organized around the next useful action.",
+                usageFrequency = "Every app build session",
+                scope = seed.scope,
+                monetization = seed.monetization,
+                status = seed.status,
+                buildStage = "Next step: ${seed.nextAction}",
+                lastEdited = today(),
+                mvpProgress = seed.progress,
+                summary = "${seed.name}: ${seed.description}",
+                mainFlow = "Capture idea, generate prompt, build in Codex, attach logo/screenshot/store assets, log bugs, generate update prompts, publish, then move to the next app.",
+                futureFeatures = "Version history, Markdown export, PDF briefs, GitHub export, prompt template marketplace, and backup/restore.",
+                premiumFeatures = premiumSuggestions(seed.monetization),
+                permissions = suggestedPermissions(seed.scope),
+                technicalRequirements = "Kotlin, Jetpack Compose, Room, DataStore, offline-first local storage, no login, no cloud required.",
+                risks = "Scope drift, losing prompt history, missing launch assets, and not turning test feedback into clean Codex update prompts.",
+                buildOrder = "1. Idea card. 2. Blueprint. 3. Full build prompt. 4. Icon and screenshot prompts. 5. Codex build. 6. Bug/update log. 7. Store checklist. 8. Publish and record release."
+            )
+        )
+        addDefaultPlan(id, seed.name, seed.scope, seed.monetization)
+        seedAssetsAndBugs(id, seed.name, seed.nextAction)
+        dao.upsertPrompt(PromptEntity(projectId = id, title = "Full app build prompt - ${seed.name}", projectName = seed.name, type = "Full app build prompt", body = PromptFactory.generate(ProjectEntity(appName = seed.name, description = seed.description, category = seed.category, platform = "Android", useCase = "Smithware Studios workflow", targetUser = "Indie builders and Smithware Studios", problem = "Build workflow is scattered.", difference = "Organized app factory dashboard.", usageFrequency = "Every build", scope = seed.scope, monetization = seed.monetization, status = seed.status, buildStage = seed.nextAction, lastEdited = today(), mvpProgress = seed.progress, summary = seed.description, mainFlow = "Idea to prompt to Codex to assets to launch.", futureFeatures = "Exports, templates, backup.", premiumFeatures = premiumSuggestions(seed.monetization), permissions = suggestedPermissions(seed.scope), technicalRequirements = "Kotlin, Compose, Room, DataStore.", risks = "Scope creep.", buildOrder = "Prompt, build, test, polish, publish."), emptyList(), emptyList(), emptyList(), BuildSmithSettings(), "Full app build prompt"), createdAt = today()))
+    }
+
+    private suspend fun seedAssetsAndBugs(projectId: Long, name: String, nextAction: String) {
+        listOf("Icon", "Feature graphic", "Screenshot prompts", "Short description", "Long description", "Privacy policy", "Closed testing notes", "Store listing").forEach {
+            dao.upsertFeature(FeatureEntity(projectId = projectId, name = it, description = "$it for $name.", priority = "Should-have", complexity = "Low", monetization = "Free", status = if (it == "Icon") "Building" else "Planned", category = "Asset tracker", notes = "Next action: $nextAction"))
+        }
+        dao.upsertFeature(FeatureEntity(projectId = projectId, name = "First test feedback", description = "$name: log anything that feels wrong during testing, then generate an update prompt.", priority = "Must-have", complexity = "Medium", monetization = "Free", status = "Planned", category = "Bug / update log", notes = "Example: Mark button too small during recording. Generate update prompt."))
     }
 
     private suspend fun addDefaultPlan(projectId: Long, name: String, scope: String, monetization: String) {
@@ -259,7 +339,26 @@ class BuildSmithViewModel(application: Application) : AndroidViewModel(applicati
     }
 }
 
-data class DemoSeed(val name: String, val description: String, val scope: String, val monetization: String)
+val studioSeeds = listOf(
+    DemoSeed("Workday Planner", "Daily planning, manager dashboard, training, notes, widgets, and workday utility releases.", "Planner/calendar app", "Pro tools", "Published", "Review next update idea", "Productivity", 92),
+    DemoSeed("Renewal Radar", "Subscription and bill tracker for local-first renewal planning.", "Tracker/logging app", "Lifetime unlock", "Published", "Generate UI polish prompt", "Finance", 86),
+    DemoSeed("Fridge Finish", "Food reminder and receipt/OCR helper for reducing waste.", "Tracker/logging app", "Freemium", "Published", "Create screenshot prompt", "Home", 78),
+    DemoSeed("FolderSmith Mobile", "Safe file organization companion with careful review-first behavior.", "File/storage app", "Pro tools", "Testing", "Generate bug-fix prompt", "Tools", 62),
+    DemoSeed("MarkerMic", "Audio recorder with timestamp markers for creators and note takers.", "Creator tool", "Freemium", "Prompt Ready", "Generate UI polish prompt", "Creator", 45),
+    DemoSeed("PlatePilot", "Calorie, carb, and macro tracker scoped as a calm local-first planner.", "Health/fitness app", "Subscription", "Idea", "Lock MVP scope", "Health", 22),
+    DemoSeed("BuildSmith Studio", "Smithware Studios command center for app ideas, Codex prompts, launch assets, bugs, and release checklists.", "Business tool", "Freemium", "In Codex", "Publish next DevHub release", "Tools", 70)
+)
+
+data class DemoSeed(
+    val name: String,
+    val description: String,
+    val scope: String,
+    val monetization: String,
+    val status: String = "Planning",
+    val nextAction: String = "Generate full app build prompt",
+    val category: String = "Productivity",
+    val progress: Int = 45
+)
 
 private fun today(): String = LocalDate.now().format(DateTimeFormatter.ISO_DATE)
 

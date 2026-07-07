@@ -11,11 +11,13 @@ object PromptFactory {
     ): String {
         val mvpFeatures = features.filter { it.priority == "Must-have" || it.priority == "Should-have" }
         val futureFeatures = features.filter { it.priority == "Future" || it.monetization.contains("Pro", true) }
+        val assets = features.filter { it.category == "Asset tracker" }
+        val bugs = features.filter { it.category == "Bug / update log" }
         return """
 Build a native app for ${settings.studioName} called "${project.appName}".
 
 Prompt type: $type
-Tagline: Turn app ideas into build-ready plans.
+Tagline: Turn app ideas into build-ready prompts.
 
 App goal:
 ${project.summary.ifBlank { project.description }}
@@ -37,6 +39,12 @@ ${screens.joinToString("\n") { "- ${it.name}: ${it.purpose}. Components: ${it.co
 
 Feature list:
 ${features.joinToString("\n") { "- ${it.name} (${it.priority}, ${it.complexity}, ${it.monetization}): ${it.description}" }.ifBlank { "- Project dashboard\n- Local storage\n- Prompt generation\n- Settings" }}
+
+Launch assets to prepare:
+${assets.joinToString("\n") { "- ${it.name}: ${it.description}. Status: ${it.status}." }.ifBlank { "- Icon\n- Feature graphic\n- Store screenshots\n- Short description\n- Long description\n- Privacy policy notes" }}
+
+Bug and update log:
+${bugs.joinToString("\n") { "- ${it.description}. Status: ${it.status}. Notes: ${it.notes}" }.ifBlank { "- No test feedback logged yet." }}
 
 MVP scope:
 ${mvpFeatures.joinToString("\n") { "- ${it.name}" }.ifBlank { "- Keep the first version focused and offline-ready." }}
@@ -64,6 +72,9 @@ ${project.risks}
 
 Suggested build order:
 ${project.buildOrder}
+
+Smithware workflow:
+Keep this aligned to the loop: idea -> app prompt -> Codex build -> logo -> screenshots -> update prompts -> Play Store checklist -> next app.
 
 Deliverables:
 - Full Android project structure

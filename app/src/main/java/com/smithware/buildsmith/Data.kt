@@ -179,6 +179,9 @@ interface BuildSmithDao {
 
     @Query("SELECT COUNT(*) FROM projects")
     suspend fun projectCount(): Int
+
+    @Query("SELECT COUNT(*) FROM projects WHERE appName = :name")
+    suspend fun projectCountByName(name: String): Int
 }
 
 @Database(

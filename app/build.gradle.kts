@@ -12,8 +12,8 @@ android {
         applicationId = "com.smithware.buildsmith"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2-icon-studio"
+        versionCode = 4
+        versionName = "0.2.0-studio-command-center"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

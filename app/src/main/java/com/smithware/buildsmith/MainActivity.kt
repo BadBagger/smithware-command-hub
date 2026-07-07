@@ -167,7 +167,7 @@ private fun AppScaffold(state: BuildSmithUiState, vm: BuildSmithViewModel) {
 @Composable
 private fun Header(title: String, subtitle: String) {
     Column(Modifier.fillMaxWidth().padding(20.dp, 18.dp, 20.dp, 8.dp)) {
-        Text("BuildSmith", style = MaterialTheme.typography.labelLarge, color = WarmOrange, fontWeight = FontWeight.Bold)
+        Text("BuildSmith Studio", style = MaterialTheme.typography.labelLarge, color = WarmOrange, fontWeight = FontWeight.Bold)
         Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -178,7 +178,7 @@ private fun ProjectsDashboard(state: BuildSmithUiState, vm: BuildSmithViewModel,
     var wizard by remember { mutableStateOf(false) }
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         item {
-            Header("Projects Dashboard", "Turn app ideas into build-ready plans.")
+            Header("Studio Dashboard", "Turn app ideas into build-ready prompts.")
             PrivacyStrip()
             Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { wizard = true }) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("New app") }
@@ -190,7 +190,7 @@ private fun ProjectsDashboard(state: BuildSmithUiState, vm: BuildSmithViewModel,
             AnimatedVisibility(wizard) { NewAppWizard(state, vm, onDone = { wizard = false }) }
         }
         if (state.filteredProjects.isEmpty()) {
-            item { EmptyState("No app projects yet. Start with an idea and BuildSmith will turn it into a plan.") }
+            item { EmptyState("No app projects yet. Start with an idea and BuildSmith Studio will turn it into a build-ready prompt.") }
         } else {
             items(state.filteredProjects, key = { it.id }) { project ->
                 ProjectCard(project, screens = state.screens.count { it.projectId == project.id }, features = state.features.count { it.projectId == project.id }, selected = state.selectedProject?.id == project.id, onSelect = { vm.selectProject(project.id); onBuilder() }, onArchive = { vm.archiveProject(project.id) }, onDuplicate = { vm.duplicateProject(project.id) }, onDelete = { vm.deleteProject(project.id) })
@@ -212,7 +212,7 @@ private fun PrivacyStrip() {
 
 @Composable
 private fun StatusFilters(selected: String, onSelect: (String) -> Unit) {
-    val statuses = listOf("All", "Idea", "Planning", "Building", "Testing", "Ready to Launch", "Launched")
+    val statuses = listOf("All", "Idea", "Prompt Ready", "In Codex", "Testing", "Store Assets", "Published")
     Row(Modifier.padding(20.dp, 10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         statuses.take(4).forEach { FilterChip(selected = selected == it, onClick = { onSelect(it) }, label = { Text(it) }) }
     }
@@ -243,7 +243,7 @@ private fun ProjectCard(project: ProjectEntity, screens: Int, features: Int, sel
                 AssistChip(onClick = {}, label = { Text(project.status) })
                 AssistChip(onClick = {}, label = { Text(project.monetization) })
             }
-            Text("${project.buildStage} • Edited ${project.lastEdited} • ${project.mvpProgress}% MVP • $screens screens • $features features", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${project.buildStage} | Edited ${project.lastEdited} | ${project.mvpProgress}% workflow | $screens screens | $features items", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -306,18 +306,38 @@ private fun BuilderScreen(state: BuildSmithUiState, vm: BuildSmithViewModel) {
         return
     }
     var section by remember { mutableStateOf("Blueprint") }
-    val sections = listOf("Blueprint", "Screens", "Features", "Data")
+    val sections = listOf("Command", "Blueprint", "Assets", "Bugs", "Screens", "Features", "Data")
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp)) {
         item {
             Header(project.appName, project.description)
             Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { sections.forEach { FilterChip(selected = section == it, onClick = { section = it }, label = { Text(it) }) } }
         }
         when (section) {
+            "Command" -> item { CommandCenter(project, state, vm) }
             "Blueprint" -> item { Blueprint(project, state) }
+            "Assets" -> item { AssetTracker(project, state, vm) }
+            "Bugs" -> item { BugUpdateLog(project, state, vm) }
             "Screens" -> item { ScreenPlanner(project, state, vm) }
             "Features" -> item { FeaturePlanner(project, state, vm) }
             "Data" -> item { DataPlanner(project, state, vm) }
         }
+    }
+}
+
+@Composable
+private fun CommandCenter(project: ProjectEntity, state: BuildSmithUiState, vm: BuildSmithViewModel) {
+    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        InfoCard("Workflow loop", "Idea -> app prompt -> Codex build -> logo -> screenshots -> update prompts -> Play Store checklist -> next app")
+        InfoCard("Status", "${project.status}\n${project.buildStage}")
+        InfoCard("Build version", "Current planning version: ${project.lastEdited}\nRelease notes and update ideas live in the bug/update log.")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { vm.generatePrompt(project.id, "Full app build prompt") }) { Text("Full build") }
+            OutlinedButton(onClick = { vm.generatePrompt(project.id, "UI improvement prompt") }) { Text("UI polish") }
+            OutlinedButton(onClick = { vm.generatePrompt(project.id, "Bug fix prompt") }) { Text("Bug fix") }
+        }
+        val assetCount = state.features.count { it.projectId == project.id && it.category == "Asset tracker" }
+        val bugCount = state.features.count { it.projectId == project.id && it.category == "Bug / update log" }
+        InfoCard("Factory summary", "$assetCount launch assets tracked\n$bugCount bugs or update ideas logged\n${state.prompts.count { it.projectId == project.id }} prompt versions saved")
     }
 }
 
@@ -344,6 +364,44 @@ private fun Blueprint(project: ProjectEntity, state: BuildSmithUiState) {
 }
 
 @Composable
+private fun AssetTracker(project: ProjectEntity, state: BuildSmithUiState, vm: BuildSmithViewModel) {
+    var name by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    PlannerAdd("Add asset", "Asset name", name, { name = it }, "Notes", notes, { notes = it }) {
+        vm.quickAddAsset(project.id, name, notes)
+        name = ""
+        notes = ""
+    }
+    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        InfoCard("Launch assets", "Track icon, feature graphic, screenshot prompts, short description, long description, privacy policy, closed testing notes, store listing, and demo screenshots.")
+        state.features.filter { it.projectId == project.id && it.category == "Asset tracker" }.forEach {
+            InfoCard(it.name, "${it.description}\nStatus: ${it.status}\n${it.notes}", onDelete = { vm.deleteFeature(it.id) })
+        }
+    }
+}
+
+@Composable
+private fun BugUpdateLog(project: ProjectEntity, state: BuildSmithUiState, vm: BuildSmithViewModel) {
+    var note by remember { mutableStateOf("") }
+    Card(Modifier.fillMaxWidth().padding(20.dp), shape = RoundedCornerShape(8.dp)) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Log test feedback", fontWeight = FontWeight.Bold)
+            Field("Example: MarkerMic mark button too small during recording", note) { note = it }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { vm.quickAddBug(project.id, note); note = "" }, enabled = note.isNotBlank()) { Text("Add log") }
+                OutlinedButton(onClick = { vm.generatePrompt(project.id, "Bug fix prompt") }) { Text("Bug prompt") }
+                OutlinedButton(onClick = { vm.generatePrompt(project.id, "Update version prompt") }) { Text("Update prompt") }
+            }
+        }
+    }
+    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        state.features.filter { it.projectId == project.id && it.category == "Bug / update log" }.forEach {
+            InfoCard(it.name, "${it.description}\nStatus: ${it.status}\n${it.notes}", onDelete = { vm.deleteFeature(it.id) })
+        }
+    }
+}
+
+@Composable
 private fun ScreenPlanner(project: ProjectEntity, state: BuildSmithUiState, vm: BuildSmithViewModel) {
     var name by remember { mutableStateOf("") }
     var purpose by remember { mutableStateOf("") }
@@ -363,7 +421,7 @@ private fun FeaturePlanner(project: ProjectEntity, state: BuildSmithUiState, vm:
     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         state.features.filter { it.projectId == project.id }.groupBy { it.category }.forEach { (category, features) ->
             Text(category, fontWeight = FontWeight.Bold, color = WarmOrange)
-            features.forEach { InfoCard(it.name, "${it.description}\nPriority: ${it.priority} • Complexity: ${it.complexity} • Monetization: ${it.monetization} • Status: ${it.status}\n${it.notes}", onDelete = { vm.deleteFeature(it.id) }) }
+            features.forEach { InfoCard(it.name, "${it.description}\nPriority: ${it.priority} | Complexity: ${it.complexity} | Monetization: ${it.monetization} | Status: ${it.status}\n${it.notes}", onDelete = { vm.deleteFeature(it.id) }) }
         }
     }
 }
@@ -390,9 +448,9 @@ private fun PromptsScreen(state: BuildSmithUiState, vm: BuildSmithViewModel) {
     val context = LocalContext.current
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp)) {
         item {
-            Header("Prompt Generator", "Create Codex-ready build, update, bug-fix, UI polish, listing, logo, and screenshot prompts.")
+            Header("Prompt Generator", "Create copy-ready prompts for Codex builds, UI polish, bug fixes, premium features, listings, logos, screenshots, privacy notes, and version updates.")
             if (project != null) {
-                val promptTypes = listOf("Full app build prompt", "MVP-only prompt", "UI improvement prompt", "Bug fix prompt", "Feature expansion prompt", "Monetization prompt", "Play Store listing prompt", "App icon/logo prompt", "Database/storage prompt", "Refactor prompt")
+                val promptTypes = listOf("Full app build prompt", "MVP-only prompt", "UI improvement prompt", "Bug fix prompt", "Add premium features prompt", "Play Store listing prompt", "App icon/logo prompt", "Store screenshot prompt", "Privacy policy notes prompt", "Update version prompt")
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     promptTypes.chunked(2).forEach { row -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { OutlinedButton(onClick = { vm.generatePrompt(project.id, it) }) { Text(it) } } } }
                 }
@@ -422,17 +480,17 @@ private fun PromptsScreen(state: BuildSmithUiState, vm: BuildSmithViewModel) {
 private fun LaunchScreen(state: BuildSmithUiState, vm: BuildSmithViewModel) {
     val project = state.selectedProject
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp)) {
-        item { Header("Launch Planner", "Prepare store copy, privacy notes, testing tasks, screenshots, and release readiness.") }
+        item { Header("Launch Planner", "Prepare store copy, privacy notes, testing tasks, screenshots, assets, and release readiness.") }
         if (project == null) {
             item { EmptyState("Choose a project to prepare launch materials.") }
         } else {
             item {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    InfoCard("App tagline", "Turn app ideas into build-ready plans.")
+                    InfoCard("App tagline", "Turn app ideas into build-ready prompts.")
                     InfoCard("Short description", project.description)
                     InfoCard("Long description", "${project.summary}\n\nBuilt for ${project.targetUser}. It solves: ${project.problem}")
                     InfoCard("Keywords", "${project.category}, ${project.scope}, ${project.platform}, productivity, builder, planner")
-                    InfoCard("Screenshot ideas", "Dashboard progress, blueprint sections, screen planner, prompt generator, launch checklist.")
+                    InfoCard("Screenshot ideas", "Dashboard progress, command center, asset tracker, bug/update log, prompt generator, launch checklist.")
                     InfoCard("App icon prompt", "Premium studio mark for ${project.appName}, charcoal background, warm orange build-grid symbol, cream highlights, lime accent.")
                     IconStudio(project.appName)
                     InfoCard("Privacy policy notes", "All app plans stay local on device in v1. No login, no cloud, no analytics, no paid APIs.")
@@ -582,7 +640,7 @@ private fun isWhiteBackgroundPixel(pixel: Int): Boolean {
 private fun SettingsScreen(state: BuildSmithUiState, vm: BuildSmithViewModel) {
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp)) {
         item {
-            Header("Settings", "Defaults, local privacy, backup actions, and BuildSmith app info.")
+            Header("Settings", "Defaults, local privacy, backup actions, and BuildSmith Studio app info.")
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ChoiceRow("Theme", listOf("System", "Light", "Dark"), state.settings.theme) { vm.setSetting("theme", it) }
                 Field("Default platform", state.settings.defaultPlatform) { vm.setSetting("platform", it) }
@@ -591,8 +649,8 @@ private fun SettingsScreen(state: BuildSmithUiState, vm: BuildSmithViewModel) {
                 InfoCard("Export all projects", "Future-ready local backup action. v1 data is stored in Room and DataStore.")
                 InfoCard("Import backup", "Future-ready restore action for local backups.")
                 InfoCard("Reset demo data", "Delete custom projects manually, then reinstall to reseed demo projects.")
-                InfoCard("About BuildSmith", "BuildSmith by Smithware Studios. Turn app ideas into build-ready plans.")
-                InfoCard("Privacy note", "Your app ideas stay on this device. BuildSmith v1 has no login, no cloud, and no paid APIs.")
+                InfoCard("About BuildSmith Studio", "BuildSmith Studio by Smithware Studios. Turn app ideas into build-ready prompts.")
+                InfoCard("Privacy note", "Your app ideas stay on this device. BuildSmith Studio has no login, no cloud, and no paid APIs.")
             }
         }
     }
