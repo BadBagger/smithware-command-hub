@@ -1,0 +1,9 @@
+.gradle/
+.kotlin/
+.idea/
+.codex-remote-attachments/
+build/
+app/build/
+local.properties
+*.apk
+*.jks
