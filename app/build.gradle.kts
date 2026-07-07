@@ -12,8 +12,8 @@ android {
         applicationId = "com.smithware.central"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.1.2-startup-safe"
+        versionCode = 4
+        versionName = "0.1.3-viewmodel-fix"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

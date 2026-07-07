@@ -98,6 +98,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.combine
@@ -188,7 +190,11 @@ private fun CommandHubTheme(themeMode: String, content: @Composable () -> Unit) 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CommandHubApp(vm: CommandHubViewModel = viewModel()) {
+private fun CommandHubApp() {
+    val application = LocalContext.current.applicationContext as Application
+    val vm: CommandHubViewModel = viewModel(
+        factory = remember(application) { CommandHubViewModelFactory(application) }
+    )
     val state by vm.state.collectAsState()
     var lockedFeature by remember { mutableStateOf<PremiumFeature?>(null) }
     val systemDark = isSystemInDarkTheme()
@@ -3154,6 +3160,18 @@ private class CommandHubViewModel(application: Application) : AndroidViewModel(a
     }
     fun deleteLocalData() = viewModelScope.launch {
         repository.deleteLocalData()
+    }
+}
+
+private class CommandHubViewModelFactory(
+    private val application: Application
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(CommandHubViewModel::class.java)) {
+            return CommandHubViewModel(application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class ${modelClass.name}")
     }
 }
 
