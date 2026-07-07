@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "com.smithware.buildsmith"
+    namespace = "com.smithware.central"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.smithware.buildsmith"
+        applicationId = "com.smithware.central"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.2.1-prompt-tagline-layout"
+        versionCode = 1
+        versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -53,7 +53,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons)
-    implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.datastore.preferences)

@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BuildSmith"
+rootProject.name = "SmithwareCentral"
 include(":app")

@@ -1,23 +1,23 @@
-# BuildSmith Studio
+# Smithware Command Hub
 
-BuildSmith Studio is a native Android command center by Smithware Studios for turning app ideas into build-ready prompts.
+Smithware Command Hub is a native Android dashboard foundation by Smithware Studios.
 
-It helps indie developers, solo builders, and small studios manage the loop from idea to Codex build to launch assets to update prompts.
+This build uses polished demo Smithware app cards only. Real app integrations are intentionally not wired in this foundation pass.
+
+## Release
+
+- Version: `0.1.0`
+- Package: `com.smithware.central`
+- GitHub Release: `https://github.com/BadBagger/smithware-command-hub/releases/tag/v0.1.0-smithware-command-hub`
+- APK assets: `SmithwareCommandHub.apk`, `SmithwareCommandHub-v0.1.0.apk`
 
 ## v1 Scope
 
-- Local-first project planning
-- Guided new app wizard
-- Studio command center
-- Blueprint, screen, feature, and data model planners
-- Codex prompt generator
-- Prompt library
-- Asset tracker
-- Bug and update log
-- Build and launch checklist
-- Icon Studio for local white-background removal and transparent PNG export
-- Target-app tagline guidance in generated prompts
-- Mobile-safe wrapping for long choice and prompt buttons
-- Room database and DataStore settings
-
-BuildSmith v1 does not compile APKs on the phone and does not upload app ideas or prompts.
+- Kotlin + Jetpack Compose + Material 3
+- ViewModel-backed demo state
+- Five tabs: Hub, Apps, Assistant, Alerts, Settings
+- Reusable models for app cards, alerts, daily summaries, and categories
+- Dark premium Smithware branding with graphite, metallic cream, orange sparks, green, purple, and steel accents
+- Offline/local-first settings posture
+- Package launch support for explicitly configured Smithware app cards
+- No background monitoring, login, cloud sync, provider APIs, or assistant API calls

@@ -1,38 +1,28 @@
-# BuildSmith Project Context
+# Smithware Command Hub Project Context
 
 ## App
 
-- Name: BuildSmith Studio
+- Name: Smithware Command Hub
 - Studio: Smithware Studios
-- Package: `com.smithware.buildsmith`
-- Repo: `https://github.com/BadBagger/buildsmith`
-- Repo visibility: public, so DevHub can read releases and download APK assets without a logged-in GitHub session
-- Role: local-first Smithware Studios command center for turning rough app ideas into build-ready prompts, assets, update logs, and launch checklists
-- Latest release: `v0.2.1-prompt-tagline-layout`
-- Release URL: `https://github.com/BadBagger/buildsmith/releases/tag/v0.2.1-prompt-tagline-layout`
-- Release APK assets: `BuildSmith.apk`, `BuildSmith-release-v0.2.1-prompt-tagline-layout.apk`
-- DevHub connection: added in SoftSmith DevHub `v2.1.10-buildsmith`; refreshed as BuildSmith Studio in `v2.1.11-buildsmith-studio`; pinned to `v0.2.1-prompt-tagline-layout` in `v2.1.12-buildsmith-tagline-layout`
+- Package: `com.smithware.central`
+- Repo: `https://github.com/BadBagger/smithware-command-hub`
+- Role: local-first Smithware Studios command dashboard foundation using demo cards
+- Latest release: `v0.1.0-smithware-command-hub`
+- Release URL: `https://github.com/BadBagger/smithware-command-hub/releases/tag/v0.1.0-smithware-command-hub`
+- Release APK assets: `SmithwareCommandHub.apk`, `SmithwareCommandHub-v0.1.0.apk`
+- DevHub connection: pending metadata update after release verification
 
 ## Current Scope
 
-BuildSmith Studio includes:
+Smithware Command Hub v0.1.0 includes:
 
-- Projects dashboard
-- Smithware workflow command center
-- New app wizard
-- Blueprint screen
-- Screen, feature, and data model planners
-- Codex prompt generator and prompt library
-- Build checklist and launch planner
-- Monetization planning content
-- Asset tracker for icons, screenshots, store descriptions, privacy notes, closed testing notes, and store listings
-- Bug/update log that turns test feedback into Codex update prompts
-- Prompt templates use the target app's own tagline guidance instead of BuildSmith Studio's tagline
-- Wizard choices, builder section chips, model templates, and prompt type buttons wrap cleanly on narrow phones
-- Settings
-- Demo projects
-- Local Room database and DataStore settings
-- Icon Studio for picking an image, removing connected white background locally, previewing, and exporting a transparent PNG
+- Kotlin, Jetpack Compose, Material 3, and ViewModel-backed state
+- Five main tabs: Hub, Apps, Assistant, Alerts, Settings
+- Demo Smithware app cards only
+- Reusable models for connected app cards, command alerts, daily summaries, and app categories
+- Dark premium Smithware visual system: graphite, metallic cream, orange sparks, subtle green/purple/steel category accents
+- Offline/demo settings posture
+- No real app integrations wired in this foundation pass
 
 ## Constraints
 
@@ -40,8 +30,10 @@ BuildSmith Studio includes:
 - No login required
 - No cloud required for v1
 - No paid APIs required for v1
-- Does not compile APKs directly on the phone in v1
-- App ideas and prompts stay on device
+- No ChatGPT/OpenAI API key embedded in the Android app
+- No silent listening, screen watching, private-message reading, or location monitoring
+- AI requests should use user-approved summaries instead of raw recordings, full histories, or private files in a future integration pass
+- Deeper app controls, notifications, and real app integrations are future-version work
 
 ## Build
 
