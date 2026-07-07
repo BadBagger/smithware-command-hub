@@ -10,7 +10,8 @@
 - Latest release: `v0.1.0-smithware-command-hub`
 - Release URL: `https://github.com/BadBagger/smithware-command-hub/releases/tag/v0.1.0-smithware-command-hub`
 - Release APK assets: `SmithwareCommandHub.apk`, `SmithwareCommandHub-v0.1.0.apk`
-- DevHub connection: pending metadata update after release verification
+- DevHub connection: connected in `v2.1.15-smithware-command-hub`
+- DevHub release URL: `https://github.com/BadBagger/softsmith-devhub/releases/tag/v2.1.15-smithware-command-hub`
 
 ## Current Scope
 
