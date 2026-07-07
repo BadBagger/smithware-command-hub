@@ -282,6 +282,7 @@ private fun CommandHubApp() {
                                 onAppSelected = vm::selectApp,
                                 onOpenBrief = vm::openDailyBrief,
                                 onOpenApps = { vm.selectTab(CommandTab.Apps) },
+                                onOpenAssistant = { vm.selectTab(CommandTab.Assistant) },
                                 onOpenAlerts = { vm.selectTab(CommandTab.Alerts) }
                             )
                             CommandTab.Apps -> AppsScreen(
@@ -587,6 +588,7 @@ private fun HubScreen(
     onAppSelected: (String) -> Unit,
     onOpenBrief: () -> Unit,
     onOpenApps: () -> Unit,
+    onOpenAssistant: () -> Unit,
     onOpenAlerts: () -> Unit
 ) {
     val activeAlerts = state.alerts.count { !it.isCompleted }
@@ -634,11 +636,18 @@ private fun HubScreen(
                     onAction = onOpenAlerts
                 )
             } else {
-                HubAlertsSection(activeAlertCards)
+                HubAlertsSection(activeAlertCards, onAppSelected)
             }
         }
         item { SectionTitle("Quick Actions") }
-        item { QuickActionsRow() }
+        item {
+            QuickActionsRow(
+                onAddReminder = onOpenAlerts,
+                onOpenAssistant = onOpenAssistant,
+                onAddAppCard = onOpenApps,
+                onViewAllAlerts = onOpenAlerts
+            )
+        }
     }
 }
 
@@ -1754,7 +1763,7 @@ private fun AboutSettingsSection() {
         SettingsSectionHeader(Icons.Filled.FlashOn, "About", "Smithware Studios command software.")
         Spacer(Modifier.height(14.dp))
         SettingsInfoRow("Studio", "Smithware Studios")
-        SettingsInfoRow("App version", "0.1.0")
+        SettingsInfoRow("App version", "0.1.4-card-refine")
         SettingsInfoRow("Brand", "Premium local-first tools for managing the day from one hub.")
         SettingsInfoRow("Feedback", "Feedback link can be added when the public channel is ready.")
     }
@@ -2310,15 +2319,20 @@ private fun CommandBriefRow(item: CommandBriefItem) {
 }
 
 @Composable
-private fun QuickActionsRow() {
+private fun QuickActionsRow(
+    onAddReminder: () -> Unit,
+    onOpenAssistant: () -> Unit,
+    onAddAppCard: () -> Unit,
+    onViewAllAlerts: () -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickActionCard("Add reminder", "Create note", Icons.Filled.Notifications, spark, Modifier.weight(1f))
-            QuickActionCard("Open assistant", "Ask hub", Icons.Filled.AutoAwesome, signalPurple, Modifier.weight(1f))
+            QuickActionCard("Add reminder", "Create note", Icons.Filled.Notifications, spark, onAddReminder, Modifier.weight(1f))
+            QuickActionCard("Open assistant", "Ask hub", Icons.Filled.AutoAwesome, signalPurple, onOpenAssistant, Modifier.weight(1f))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickActionCard("Add app card", "Starter card", Icons.Filled.Apps, calmGreen, Modifier.weight(1f))
-            QuickActionCard("View all alerts", "Review list", Icons.Filled.Warning, ember, Modifier.weight(1f))
+            QuickActionCard("Add app card", "Starter card", Icons.Filled.Apps, calmGreen, onAddAppCard, Modifier.weight(1f))
+            QuickActionCard("View all alerts", "Review list", Icons.Filled.Warning, ember, onViewAllAlerts, Modifier.weight(1f))
         }
     }
 }
@@ -2329,10 +2343,13 @@ private fun QuickActionCard(
     subtitle: String,
     icon: ImageVector,
     tint: Color,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.height(112.dp),
+        modifier = modifier
+            .height(112.dp)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = graphiteRaised.copy(alpha = 0.94f)),
         border = BorderStroke(1.dp, tint.copy(alpha = 0.35f))
@@ -2670,18 +2687,20 @@ private fun AppInfoPill(text: String, icon: ImageVector, color: Color, modifier:
 }
 
 @Composable
-private fun HubAlertsSection(alerts: List<CommandAlert>) {
+private fun HubAlertsSection(alerts: List<CommandAlert>, onAppSelected: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         alerts.forEach { alert ->
-            HubAlertCard(alert)
+            HubAlertCard(alert, onClick = { onAppSelected(alert.sourceAppId) })
         }
     }
 }
 
 @Composable
-private fun HubAlertCard(alert: CommandAlert) {
+private fun HubAlertCard(alert: CommandAlert, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xF21B1E22)),
         border = BorderStroke(1.dp, alert.priority.color.copy(alpha = 0.30f))
@@ -3406,6 +3425,10 @@ private enum class AlertListTab(val label: String) {
 
 private fun cardIconOptions() = listOf(
     CardIconOption("apps", "Apps", Icons.Filled.Apps),
+    CardIconOption("renewal", "Renewal", Icons.Filled.AttachMoney),
+    CardIconOption("fridge", "Fridge", Icons.Filled.Restaurant),
+    CardIconOption("marker", "Marker", Icons.Filled.Checklist),
+    CardIconOption("broom", "Broom", Icons.Filled.CleaningServices),
     CardIconOption("health", "Health", AppCategory.Health.icon),
     CardIconOption("fitness", "Fitness", AppCategory.Fitness.icon),
     CardIconOption("diet", "Diet", AppCategory.Diet.icon),
@@ -3437,7 +3460,7 @@ private fun ConnectedAppCardModel.cardAccent(): Color =
     accentColor?.let { Color(it.toULong()) } ?: category.color
 
 private fun ConnectedAppCardModel.displayIcon(): ImageVector =
-    if (isCustom && iconKey != "apps") iconForKey(iconKey) else category.icon
+    if (iconKey != "apps") iconForKey(iconKey) else category.icon
 
 private fun Color.toStoredLong(): Long = value.toLong()
 
@@ -3930,8 +3953,10 @@ private fun commandHubDemoState() = CommandHubState(
             recentActivity = listOf("Morning shift checklist refreshed.", "Follow-up task added from notes.", "Break reminder staged locally."),
             priority = 98,
             health = AppHealth.Attention,
-            packageName = "com.smithware.workdayplanner",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.workdayplanner"
+            packageName = "com.example.workdayplanner",
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/workday-planner/releases",
+            iconKey = "work",
+            accentColor = AppCategory.Work.color.toStoredLong()
         ),
         ConnectedAppCardModel(
             id = "renewal",
@@ -3945,8 +3970,10 @@ private fun commandHubDemoState() = CommandHubState(
             recentActivity = listOf("Weekly bill total refreshed.", "Streaming renewal added to watch list.", "Planning reminder sent to the brief."),
             priority = 94,
             health = AppHealth.Attention,
-            packageName = "com.smithware.renewalradar",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.renewalradar"
+            packageName = "com.renewalradar.app",
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/renewal-radar/releases",
+            iconKey = "renewal",
+            accentColor = AppCategory.Finance.color.toStoredLong()
         ),
         ConnectedAppCardModel(
             id = "fridgefinish",
@@ -3960,8 +3987,10 @@ private fun commandHubDemoState() = CommandHubState(
             recentActivity = listOf("Chicken moved to use-soon.", "Dinner idea generated locally.", "Grocery reminder updated."),
             priority = 90,
             health = AppHealth.Attention,
-            packageName = "com.smithware.fridgefinish",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.fridgefinish"
+            packageName = "com.fridgefinish.app",
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/fridge-finish/releases",
+            iconKey = "fridge",
+            accentColor = AppCategory.Diet.color.toStoredLong()
         ),
         ConnectedAppCardModel(
             id = "markermic",
@@ -3976,7 +4005,9 @@ private fun commandHubDemoState() = CommandHubState(
             priority = 86,
             health = AppHealth.Ready,
             packageName = "com.smithware.markermic",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.markermic"
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/markermic/releases",
+            iconKey = "marker",
+            accentColor = AppCategory.Tasks.color.toStoredLong()
         ),
         ConnectedAppCardModel(
             id = "foldersmith",
@@ -3990,8 +4021,10 @@ private fun commandHubDemoState() = CommandHubState(
             recentActivity = listOf("Sample storage scan completed.", "Review-first cleanup card created.", "Undo-safe note attached."),
             priority = 78,
             health = AppHealth.Ready,
-            packageName = "com.smithware.foldersmith",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.foldersmith"
+            packageName = "com.foldersmith.mobile",
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/foldersmith-mobile/releases",
+            iconKey = "files",
+            accentColor = AppCategory.Files.color.toStoredLong()
         ),
         ConnectedAppCardModel(
             id = "platepilot",
@@ -4006,7 +4039,9 @@ private fun commandHubDemoState() = CommandHubState(
             priority = 72,
             health = AppHealth.Ready,
             packageName = "com.smithware.platepilot",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.platepilot"
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/platepilot/releases",
+            iconKey = "diet",
+            accentColor = AppCategory.Diet.color.toStoredLong()
         ),
         ConnectedAppCardModel(
             id = "choretracker",
@@ -4020,8 +4055,10 @@ private fun commandHubDemoState() = CommandHubState(
             recentActivity = listOf("Kitchen counter reset moved to tonight.", "Laundry follow-up marked small-step.", "Bedroom reset pinned to Hub."),
             priority = 68,
             health = AppHealth.Attention,
-            packageName = "com.smithware.choretracker",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.choretracker"
+            packageName = "com.smithware.tidypilot",
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/tidypilot/releases",
+            iconKey = "broom",
+            accentColor = AppCategory.Chores.color.toStoredLong()
         ),
         ConnectedAppCardModel(
             id = "healthtracker",
@@ -4036,7 +4073,9 @@ private fun commandHubDemoState() = CommandHubState(
             priority = 64,
             health = AppHealth.Ready,
             packageName = "com.smithware.healthtracker",
-            fallbackPlayStoreUrl = "https://play.google.com/store/apps/details?id=com.smithware.healthtracker"
+            fallbackPlayStoreUrl = "https://github.com/BadBagger/healthtracker/releases",
+            iconKey = "health",
+            accentColor = AppCategory.Health.color.toStoredLong()
         )
     ),
     alerts = listOf(

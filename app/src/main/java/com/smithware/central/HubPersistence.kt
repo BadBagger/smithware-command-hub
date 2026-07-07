@@ -239,7 +239,9 @@ interface HubDao {
             priority = :priority,
             health = :health,
             packageName = :packageName,
-            fallbackPlayStoreUrl = :fallbackPlayStoreUrl
+            fallbackPlayStoreUrl = :fallbackPlayStoreUrl,
+            iconKey = :iconKey,
+            accentColor = :accentColor
         WHERE id = :appId AND isCustom = 0
         """
     )
@@ -256,7 +258,9 @@ interface HubDao {
         priority: Int,
         health: String,
         packageName: String?,
-        fallbackPlayStoreUrl: String?
+        fallbackPlayStoreUrl: String?,
+        iconKey: String,
+        accentColor: Long?
     )
 }
 
@@ -395,8 +399,23 @@ class CommandHubRepository(context: Context) {
             if (dao.appExists(app.id) == 0) {
                 dao.upsertApps(listOf(app))
             } else {
-                dao.updateBuiltInLaunchMetadata(app.id, app.packageName, app.fallbackPlayStoreUrl)
-                dao.updateBuiltInCategory(app.id, app.category)
+                dao.updateBuiltInAppCatalog(
+                    appId = app.id,
+                    name = app.name,
+                    shortCode = app.shortCode,
+                    category = app.category,
+                    status = app.status,
+                    summary = app.summary,
+                    todaySummary = app.todaySummary,
+                    metrics = app.metrics,
+                    recentActivity = app.recentActivity,
+                    priority = app.priority,
+                    health = app.health,
+                    packageName = app.packageName,
+                    fallbackPlayStoreUrl = app.fallbackPlayStoreUrl,
+                    iconKey = app.iconKey,
+                    accentColor = app.accentColor
+                )
             }
         }
         dao.deleteStaleBuiltInApps(apps.map { it.id })

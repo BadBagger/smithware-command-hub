@@ -12,8 +12,8 @@ android {
         applicationId = "com.smithware.central"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.1.3-viewmodel-fix"
+        versionCode = 5
+        versionName = "0.1.4-card-refine"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
