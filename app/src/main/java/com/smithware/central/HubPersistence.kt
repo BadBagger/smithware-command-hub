@@ -277,6 +277,7 @@ class CommandHubRepository(context: Context) {
         .addMigrations(MIGRATION_2_3)
         .addMigrations(MIGRATION_3_4)
         .addMigrations(MIGRATION_4_5)
+        .fallbackToDestructiveMigration()
         .build()
     private val dao = database.hubDao()
 
