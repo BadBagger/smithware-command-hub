@@ -103,6 +103,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -3010,20 +3011,24 @@ private fun PremiumCard(
 
 private class CommandHubViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = CommandHubRepository(application)
-    private val _state = MutableStateFlow(commandHubDemoState().copy(apps = emptyList(), alerts = emptyList()))
+    private val startupDemoState = commandHubDemoState()
+    private val _state = MutableStateFlow(startupDemoState.copy(onboardingComplete = true))
     val state: StateFlow<CommandHubState> = _state
 
     init {
-        val demoState = commandHubDemoState()
         viewModelScope.launch {
-            val demoApps = demoState.apps.map { it.toEntity() }
-            repository.seedIfEmpty(
-                apps = demoApps,
-                alerts = demoState.alerts.map { it.toEntity() },
-                assistantSummaries = demoState.assistantSummaries.map { it.toEntity() }
-            )
-            repository.syncBuiltInAppCatalog(demoApps)
-            repository.syncDemoAlerts(demoState.alerts.map { it.toEntity() })
+            runCatching {
+                val demoApps = startupDemoState.apps.map { it.toEntity() }
+                repository.seedIfEmpty(
+                    apps = demoApps,
+                    alerts = startupDemoState.alerts.map { it.toEntity() },
+                    assistantSummaries = startupDemoState.assistantSummaries.map { it.toEntity() }
+                )
+                repository.syncBuiltInAppCatalog(demoApps)
+                repository.syncDemoAlerts(startupDemoState.alerts.map { it.toEntity() })
+            }.onFailure {
+                _state.value = startupDemoState.copy(onboardingComplete = true)
+            }
         }
         viewModelScope.launch {
             combine(
@@ -3033,6 +3038,15 @@ private class CommandHubViewModel(application: Application) : AndroidViewModel(a
                 repository.settings
             ) { apps, alerts, assistantSummaries, settings ->
                 PersistentHubData(apps, alerts, assistantSummaries, settings)
+            }.catch {
+                emit(
+                    PersistentHubData(
+                        startupDemoState.apps.map { app -> app.toEntity() },
+                        startupDemoState.alerts.map { alert -> alert.toEntity() },
+                        startupDemoState.assistantSummaries.map { summary -> summary.toEntity() },
+                        HubSettings(onboardingComplete = true)
+                    )
+                )
             }.collect { data ->
                 _state.update { current ->
                     current.copy(
