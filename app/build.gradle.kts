@@ -1,8 +1,21 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun releaseSigningProperty(name: String): String =
+    keystoreProperties.getProperty(name)
+        ?: throw GradleException("Missing $name in local keystore.properties. Copy keystore.properties.example and fill it with local signing values.")
 
 android {
     namespace = "com.smithware.central"
@@ -12,15 +25,24 @@ android {
         applicationId = "com.smithware.central"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.1.4-card-refine"
+        versionCode = 6
+        versionName = "0.1.5-release-signed"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(releaseSigningProperty("storeFile"))
+            storePassword = releaseSigningProperty("storePassword")
+            keyAlias = releaseSigningProperty("keyAlias")
+            keyPassword = releaseSigningProperty("keyPassword")
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
